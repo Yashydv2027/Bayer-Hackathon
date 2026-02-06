@@ -1,305 +1,408 @@
 """
-Real Checkout Service - FastAPI Backend
+Checkout Service - FastAPI with MULTIPLE REAL ERROR SCENARIOS
 
-This is a REAL service that:
-1. Connects to a SQLite database
-2. Can process checkout requests
-3. Will ACTUALLY CRASH when config is broken
-4. Writes REAL logs
+This version has multiple types of errors that can be randomly injected:
+1. Connection Pool Exhaustion (DB)
+2. Memory Leak / OOM
+3. Deadlock
+4. Network Timeout
+5. Cascading Failure
 """
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 import sqlite3
+import time
 import logging
 import json
-import time
+import random
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
-from contextlib import contextmanager
 
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-
-# Setup logging - writes to a REAL log file
-LOG_FILE = Path(__file__).parent / "service.log"
-DB_FILE = Path(__file__).parent / "checkout.db"
-CONFIG_FILE = Path(__file__).parent / "service_config.json"
-
-# Configure logging to file
+# Setup logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(name)s - %(message)s',
     handlers=[
-        logging.FileHandler(LOG_FILE),
+        logging.FileHandler('service.log'),
         logging.StreamHandler()
     ]
 )
-logger = logging.getLogger("checkout-api")
+logger = logging.getLogger('checkout-api')
 
 app = FastAPI(title="Checkout Service", version="2.3.0")
 
-# CORS for Streamlit
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Config file
+CONFIG_FILE = Path(__file__).parent / "service_config.json"
+DB_FILE = Path(__file__).parent / "checkout.db"
 
-# ============= Configuration =============
+# Default healthy config
+DEFAULT_CONFIG = {
+    "db_pool_max_connections": 100,
+    "db_timeout_seconds": 10,
+    "memory_limit_mb": 512,
+    "max_retry_attempts": 3,
+    "downstream_timeout_ms": 5000,
+    "is_healthy": True,
+    "error_type": None,
+    "version": "2.3.0"
+}
 
-def get_default_config():
-    return {
-        "db_pool_max_connections": 100,
-        "db_timeout_seconds": 10,
-        "is_healthy": True,
-        "version": "2.3.0",
-        "last_deployment": None
+# Error scenarios
+ERROR_SCENARIOS = [
+    {
+        "type": "connection_pool",
+        "name": "Database Connection Pool Exhaustion",
+        "config": {"db_pool_max_connections": 50, "db_timeout_seconds": 2},
+        "symptoms": ["ConnectionTimeoutException", "pool exhausted", "high latency"]
+    },
+    {
+        "type": "memory_leak",
+        "name": "Memory Leak in Cache Service",
+        "config": {"memory_limit_mb": 32, "cache_eviction_disabled": True},
+        "symptoms": ["OutOfMemoryError", "GC overhead", "heap exhausted"]
+    },
+    {
+        "type": "deadlock",
+        "name": "Database Deadlock",
+        "config": {"lock_timeout_ms": 100, "max_lock_retries": 1},
+        "symptoms": ["DeadlockException", "lock timeout", "transaction rollback"]
+    },
+    {
+        "type": "network_timeout",
+        "name": "Downstream Service Timeout",
+        "config": {"downstream_timeout_ms": 100, "payment_gateway_unreachable": True},
+        "symptoms": ["SocketTimeoutException", "connection refused", "gateway unreachable"]
+    },
+    {
+        "type": "cascading",
+        "name": "Cascading Failure from Auth Service",
+        "config": {"auth_service_down": True, "circuit_breaker_open": True},
+        "symptoms": ["AuthServiceUnavailable", "circuit breaker open", "retry exhausted"]
     }
+]
 
 def load_config():
     if CONFIG_FILE.exists():
         with open(CONFIG_FILE) as f:
             return json.load(f)
-    return get_default_config()
+    return DEFAULT_CONFIG.copy()
 
 def save_config(config):
+    config["last_deployment"] = datetime.now().strftime("%H:%M:%S")
     with open(CONFIG_FILE, 'w') as f:
         json.dump(config, f, indent=2)
 
-# ============= Database =============
+def init_db():
+    conn = sqlite3.connect(str(DB_FILE))
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS products (
+            id INTEGER PRIMARY KEY,
+            name TEXT,
+            price REAL,
+            stock INTEGER
+        )
+    ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS orders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            product_id INTEGER,
+            quantity INTEGER,
+            total REAL,
+            created_at TEXT
+        )
+    ''')
+    # Seed products
+    cursor.execute('SELECT COUNT(*) FROM products')
+    if cursor.fetchone()[0] == 0:
+        products = [
+            (1, 'Widget', 29.99, 100),
+            (2, 'Gadget', 49.99, 50),
+            (3, 'Gizmo', 19.99, 200)
+        ]
+        cursor.executemany('INSERT INTO products VALUES (?, ?, ?, ?)', products)
+    conn.commit()
+    conn.close()
+    logger.info("Database initialized")
 
-class DatabasePool:
-    """Simulates a connection pool that can be broken."""
-    
+init_db()
+
+# State
+class ServiceState:
     def __init__(self):
-        self.active_connections = 0
-        self._init_db()
-    
-    def _init_db(self):
-        """Initialize the database with sample data."""
-        conn = sqlite3.connect(str(DB_FILE))
-        cursor = conn.cursor()
-        
-        # Create tables
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS products (
-                id INTEGER PRIMARY KEY,
-                name TEXT,
-                price REAL,
-                stock INTEGER
-            )
-        ''')
-        
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS orders (
-                id INTEGER PRIMARY KEY,
-                product_id INTEGER,
-                quantity INTEGER,
-                total REAL,
-                status TEXT,
-                created_at TIMESTAMP
-            )
-        ''')
-        
-        # Insert sample data if empty
-        cursor.execute("SELECT COUNT(*) FROM products")
-        if cursor.fetchone()[0] == 0:
-            products = [
-                (1, "Widget A", 29.99, 100),
-                (2, "Widget B", 49.99, 50),
-                (3, "Widget C", 99.99, 25),
-            ]
-            cursor.executemany("INSERT INTO products VALUES (?, ?, ?, ?)", products)
-        
-        conn.commit()
-        conn.close()
-        logger.info("Database initialized")
-    
-    @contextmanager
-    def get_connection(self):
-        """Get a database connection - THIS CAN FAIL!"""
-        config = load_config()
-        max_connections = config.get("db_pool_max_connections", 100)
-        timeout = config.get("db_timeout_seconds", 10)
-        is_healthy = config.get("is_healthy", True)
-        
-        # REAL ERROR: If not healthy, simulate pool exhaustion
-        if not is_healthy:
-            self.active_connections = max_connections  # Pool is full!
-            
-            # Simulate waiting for connection
-            logger.warning(f"Connection pool at capacity: {self.active_connections}/{max_connections}")
-            time.sleep(timeout)  # Wait for timeout
-            
-            # REAL EXCEPTION!
-            logger.error(f"DB connection timeout - pool exhausted after {timeout}s")
-            logger.critical("ConnectionTimeoutException: Unable to acquire connection from pool")
-            raise Exception(f"ConnectionTimeoutException: Connection pool exhausted after {timeout}s. Active: {self.active_connections}/{max_connections}")
-        
-        # Normal operation
-        self.active_connections += 1
-        logger.info(f"Connection acquired: {self.active_connections}/{max_connections}")
-        
-        try:
-            conn = sqlite3.connect(str(DB_FILE), timeout=timeout)
-            yield conn
-        finally:
-            conn.close()
-            self.active_connections -= 1
-            logger.info(f"Connection released: {self.active_connections}/{max_connections}")
+        self.active_connections = 50
+        self.error_count = 0
+        self.request_count = 0
+        self.current_error = None
+        self.memory_used_mb = 128
+        self.locks_held = 0
 
-# Global pool
-db_pool = DatabasePool()
-
-# ============= Models =============
+state = ServiceState()
 
 class CheckoutRequest(BaseModel):
     product_id: int
-    quantity: int
+    quantity: int = 1
 
-class CheckoutResponse(BaseModel):
-    order_id: int
-    product_name: str
-    quantity: int
-    total: float
-    status: str
-
-# ============= API Endpoints =============
+# ============= HEALTH & METRICS =============
 
 @app.get("/health")
-def health_check():
-    """Health check endpoint."""
+async def health():
     config = load_config()
     return {
         "status": "healthy" if config.get("is_healthy", True) else "unhealthy",
         "version": config.get("version", "2.3.0"),
-        "db_pool_active": db_pool.active_connections,
-        "db_pool_max": config.get("db_pool_max_connections", 100)
+        "db_pool_active": state.active_connections,
+        "db_pool_max": config.get("db_pool_max_connections", 100),
+        "memory_used_mb": state.memory_used_mb,
+        "error_type": state.current_error
     }
 
-@app.get("/products")
-def list_products():
-    """List all products."""
-    with db_pool.get_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM products")
-        products = cursor.fetchall()
-        return [
-            {"id": p[0], "name": p[1], "price": p[2], "stock": p[3]}
-            for p in products
-        ]
+@app.get("/metrics")
+async def metrics():
+    config = load_config()
+    max_conn = config.get("db_pool_max_connections", 100)
+    
+    # Calculate metrics based on error state
+    if state.current_error:
+        latency = random.randint(1500, 2500)
+        error_rate = random.uniform(10, 25)
+        pool_util = 1.0
+    else:
+        latency = random.randint(100, 200)
+        error_rate = random.uniform(0, 0.5)
+        pool_util = state.active_connections / max_conn
+    
+    return {
+        "latency_p99_ms": latency,
+        "error_rate": round(error_rate, 1),
+        "db_pool_utilization": round(pool_util, 2),
+        "memory_used_mb": state.memory_used_mb,
+        "locks_held": state.locks_held,
+        "request_count": state.request_count,
+        "error_count": state.error_count
+    }
 
-@app.post("/checkout", response_model=CheckoutResponse)
-def process_checkout(request: CheckoutRequest):
-    """Process a checkout - THIS CAN FAIL!"""
+# ============= ERROR INJECTION =============
+
+@app.post("/admin/inject-error")
+async def inject_error(error_type: str = None):
+    """Inject a random error or specific type."""
+    
+    # Pick random error if not specified
+    if error_type:
+        scenario = next((e for e in ERROR_SCENARIOS if e["type"] == error_type), ERROR_SCENARIOS[0])
+    else:
+        scenario = random.choice(ERROR_SCENARIOS)
+    
+    # Load and modify config
+    config = load_config()
+    config.update(scenario["config"])
+    config["is_healthy"] = False
+    config["error_type"] = scenario["type"]
+    save_config(config)
+    
+    # Update state
+    state.current_error = scenario["type"]
+    state.error_count += 1
+    
+    # Log the injection
+    logger.warning(f"CONFIGURATION CHANGED - {scenario['name']}")
+    logger.warning(f"Error type: {scenario['type']}")
+    for key, value in scenario["config"].items():
+        logger.warning(f"Config: {key}={value}")
+    
+    return {
+        "injected": True,
+        "error_type": scenario["type"],
+        "name": scenario["name"],
+        "symptoms": scenario["symptoms"]
+    }
+
+@app.post("/admin/inject-error/{error_type}")
+async def inject_specific_error(error_type: str):
+    """Inject a specific error type."""
+    return await inject_error(error_type)
+
+@app.get("/admin/error-types")
+async def list_error_types():
+    """List available error scenarios."""
+    return [{"type": e["type"], "name": e["name"]} for e in ERROR_SCENARIOS]
+
+@app.post("/admin/reset")
+async def reset_service():
+    """Reset to healthy state."""
+    save_config(DEFAULT_CONFIG.copy())
+    state.current_error = None
+    state.active_connections = 50
+    state.memory_used_mb = 128
+    state.locks_held = 0
+    logger.info("Service reset to healthy configuration")
+    return {"status": "reset", "healthy": True}
+
+# ============= CHECKOUT (FAILS BASED ON ERROR TYPE) =============
+
+@app.post("/checkout")
+async def checkout(request: CheckoutRequest):
+    config = load_config()
     start_time = time.time()
+    state.request_count += 1
     
     logger.info(f"Processing checkout: product={request.product_id}, qty={request.quantity}")
     
-    try:
-        with db_pool.get_connection() as conn:
-            cursor = conn.cursor()
-            
-            # Get product
-            cursor.execute("SELECT * FROM products WHERE id = ?", (request.product_id,))
-            product = cursor.fetchone()
-            
-            if not product:
-                raise HTTPException(status_code=404, detail="Product not found")
-            
-            if product[3] < request.quantity:
-                raise HTTPException(status_code=400, detail="Insufficient stock")
-            
-            # Calculate total
-            total = product[2] * request.quantity
-            
-            # Create order
-            cursor.execute(
-                "INSERT INTO orders (product_id, quantity, total, status, created_at) VALUES (?, ?, ?, ?, ?)",
-                (request.product_id, request.quantity, total, "completed", datetime.now())
-            )
-            order_id = cursor.lastrowid
-            
-            # Update stock
-            cursor.execute(
-                "UPDATE products SET stock = stock - ? WHERE id = ?",
-                (request.quantity, request.product_id)
-            )
-            
-            conn.commit()
-            
-            duration = (time.time() - start_time) * 1000
-            logger.info(f"Checkout completed: order={order_id}, duration={duration:.0f}ms")
-            
-            return CheckoutResponse(
-                order_id=order_id,
-                product_name=product[1],
-                quantity=request.quantity,
-                total=total,
-                status="completed"
-            )
-            
-    except HTTPException:
-        raise
-    except Exception as e:
-        duration = (time.time() - start_time) * 1000
-        logger.error(f"Checkout FAILED after {duration:.0f}ms: {str(e)}")
-        raise HTTPException(status_code=503, detail=str(e))
-
-@app.get("/metrics")
-def get_metrics():
-    """Get current service metrics."""
-    config = load_config()
+    error_type = config.get("error_type") or state.current_error
     
-    if config.get("is_healthy", True):
-        return {
-            "latency_p99_ms": 150,
-            "error_rate": 0.1,
-            "requests_per_second": 450,
-            "db_pool_utilization": db_pool.active_connections / config.get("db_pool_max_connections", 100)
-        }
-    else:
-        return {
-            "latency_p99_ms": 2000,
-            "error_rate": 15.0,
-            "requests_per_second": 180,
-            "db_pool_utilization": 1.0  # 100% utilized = bad!
-        }
-
-# ============= Admin Endpoints (for Streamlit) =============
-
-@app.post("/admin/inject-error")
-def inject_error():
-    """INJECT A REAL ERROR - breaks the service!"""
-    broken_config = {
-        "db_pool_max_connections": 50,  # Reduced from 100
-        "db_timeout_seconds": 2,        # Reduced from 10
-        "is_healthy": False,
-        "version": "2.3.1",
-        "last_deployment": datetime.now().strftime("%H:%M")
-    }
-    save_config(broken_config)
+    if error_type:
+        # Simulate different failure modes
+        if error_type == "connection_pool":
+            await simulate_connection_pool_error(config)
+        elif error_type == "memory_leak":
+            await simulate_memory_error(config)
+        elif error_type == "deadlock":
+            await simulate_deadlock_error(config)
+        elif error_type == "network_timeout":
+            await simulate_network_timeout_error(config)
+        elif error_type == "cascading":
+            await simulate_cascading_error(config)
     
-    logger.warning("CONFIGURATION CHANGED - DB pool reduced!")
-    logger.warning(f"New config: max_connections=50, timeout=2s")
+    # Successful checkout
+    duration = int((time.time() - start_time) * 1000)
     
-    return {"status": "error_injected", "config": broken_config}
+    conn = sqlite3.connect(str(DB_FILE))
+    cursor = conn.cursor()
+    cursor.execute('SELECT price FROM products WHERE id=?', (request.product_id,))
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    total = row[0] * request.quantity
+    cursor.execute(
+        'INSERT INTO orders (product_id, quantity, total, created_at) VALUES (?, ?, ?, ?)',
+        (request.product_id, request.quantity, total, datetime.now().isoformat())
+    )
+    order_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    
+    logger.info(f"Checkout completed: order={order_id}, duration={duration}ms")
+    
+    return {"order_id": order_id, "total": total, "status": "completed"}
 
-@app.post("/admin/reset")
-def reset_service():
-    """Reset service to healthy state."""
-    save_config(get_default_config())
-    logger.info("Service reset to healthy configuration")
-    return {"status": "reset", "config": get_default_config()}
+# ============= ERROR SIMULATIONS =============
+
+async def simulate_connection_pool_error(config):
+    timeout = config.get("db_timeout_seconds", 2)
+    max_conn = config.get("db_pool_max_connections", 50)
+    
+    state.active_connections = max_conn
+    logger.warning(f"Connection pool at capacity: {max_conn}/{max_conn}")
+    
+    time.sleep(timeout)
+    
+    state.error_count += 1
+    logger.error(f"DB connection timeout - pool exhausted after {timeout}s")
+    logger.critical(f"ConnectionTimeoutException: Unable to acquire connection from pool")
+    
+    raise HTTPException(
+        status_code=503,
+        detail=f"ConnectionTimeoutException: Connection pool exhausted after {timeout}s. Active: {max_conn}/{max_conn}"
+    )
+
+async def simulate_memory_error(config):
+    state.memory_used_mb = 490
+    logger.warning(f"Memory usage critical: {state.memory_used_mb}MB / 512MB")
+    
+    time.sleep(1)
+    
+    state.memory_used_mb = 512
+    state.error_count += 1
+    logger.error("Memory allocation failed - heap exhausted")
+    logger.critical("OutOfMemoryError: Java heap space - GC overhead limit exceeded")
+    logger.error("Cache eviction disabled - memory cannot be freed")
+    
+    raise HTTPException(
+        status_code=503,
+        detail="OutOfMemoryError: Heap exhausted. Memory: 512/512MB. GC overhead limit exceeded."
+    )
+
+async def simulate_deadlock_error(config):
+    lock_timeout = config.get("lock_timeout_ms", 100)
+    
+    state.locks_held = 5
+    logger.warning(f"Transaction waiting for lock: 5 locks held")
+    logger.warning(f"Lock contention detected on table: orders")
+    
+    time.sleep(lock_timeout / 1000)
+    
+    state.error_count += 1
+    logger.error(f"Lock timeout after {lock_timeout}ms - deadlock detected")
+    logger.critical("DeadlockException: Transaction rolled back due to lock timeout")
+    logger.error("Circular dependency: TX-001 -> orders -> TX-002 -> products -> TX-001")
+    
+    raise HTTPException(
+        status_code=503,
+        detail=f"DeadlockException: Transaction rolled back. Lock timeout: {lock_timeout}ms. Circular dependency detected."
+    )
+
+async def simulate_network_timeout_error(config):
+    timeout = config.get("downstream_timeout_ms", 100)
+    
+    logger.info("Calling payment gateway: api.payments.example.com")
+    logger.warning(f"Payment gateway not responding after {timeout}ms")
+    
+    time.sleep(timeout / 1000)
+    
+    state.error_count += 1
+    logger.error(f"Socket timeout after {timeout}ms - gateway unreachable")
+    logger.critical("SocketTimeoutException: Connection to payment gateway timed out")
+    logger.error("Downstream service: api.payments.example.com:443 - connection refused")
+    
+    raise HTTPException(
+        status_code=504,
+        detail=f"SocketTimeoutException: Payment gateway timeout after {timeout}ms. Host unreachable."
+    )
+
+async def simulate_cascading_error(config):
+    logger.info("Validating user session with auth service")
+    logger.warning("Auth service: auth.internal.svc - connection refused")
+    logger.warning("Retry 1/3 failed: AuthServiceUnavailable")
+    
+    time.sleep(0.5)
+    
+    logger.warning("Retry 2/3 failed: AuthServiceUnavailable")
+    
+    time.sleep(0.5)
+    
+    logger.warning("Retry 3/3 failed: AuthServiceUnavailable")
+    logger.error("All retries exhausted - circuit breaker opened")
+    
+    state.error_count += 1
+    logger.critical("CircuitBreakerOpenException: Auth service circuit breaker tripped")
+    logger.error("Cascading failure: checkout -> auth -> user-db -> primary-db")
+    
+    raise HTTPException(
+        status_code=503,
+        detail="CircuitBreakerOpenException: Auth service unavailable. Cascading failure detected."
+    )
+
+# ============= PRODUCTS =============
+
+@app.get("/products")
+async def get_products():
+    conn = sqlite3.connect(str(DB_FILE))
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM products')
+    products = [{"id": r[0], "name": r[1], "price": r[2], "stock": r[3]} for r in cursor.fetchall()]
+    conn.close()
+    return products
 
 @app.get("/admin/logs")
-def get_logs(lines: int = 50):
-    """Get recent log entries."""
-    if LOG_FILE.exists():
-        with open(LOG_FILE) as f:
-            all_lines = f.readlines()
-            return {"logs": all_lines[-lines:]}
+async def get_logs():
+    log_file = Path(__file__).parent / "service.log"
+    if log_file.exists():
+        with open(log_file) as f:
+            lines = f.readlines()
+            return {"logs": lines[-50:]}
     return {"logs": []}
 
 if __name__ == "__main__":

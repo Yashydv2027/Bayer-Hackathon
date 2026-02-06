@@ -1,7 +1,11 @@
 {
   "db_pool_max_connections": 100,
   "db_timeout_seconds": 10,
+  "memory_limit_mb": 512,
+  "max_retry_attempts": 3,
+  "downstream_timeout_ms": 5000,
   "is_healthy": true,
+  "error_type": null,
   "version": "2.3.0",
-  "last_deployment": null
+  "last_deployment": "15:31:46"
 }

@@ -1,0 +1,63 @@
+"""
+Demo Buggy Service - For Code Fixer Demonstration
+
+This file contains intentional bugs that the CodeFixerAgent can fix.
+"""
+
+
+def calculate_discount(price, discount_percent):
+    """Calculate discounted price."""
+    # BUG: Division by zero when discount_percent is 100
+    discount_amount = price * (discount_percent / 100)
+    return price - discount_amount
+
+
+def get_user_name(user_data):
+    """Get user's full name from data."""
+    # BUG: KeyError if 'name' key doesn't exist
+    return user_data['name']
+
+
+def process_items(items):
+    """Process list of items."""
+    # BUG: IndexError if items is empty
+    first_item = items[0]
+    return f"Processing {first_item}"
+
+
+def format_response(response):
+    """Format API response."""
+    # BUG: AttributeError if response is None
+    return response.upper()
+
+
+# Main demo function that triggers bugs
+def run_demo(mode="discount"):
+    """
+    Run demo with different bug modes.
+    
+    Modes:
+    - 'discount': Trigger division issue
+    - 'user': Trigger KeyError
+    - 'items': Trigger IndexError
+    - 'response': Trigger NoneType error
+    """
+    if mode == "discount":
+        return calculate_discount(100, 100)  # Works but edge case
+    
+    elif mode == "user":
+        return get_user_name({})  # Will raise KeyError
+    
+    elif mode == "items":
+        return process_items([])  # Will raise IndexError
+    
+    elif mode == "response":
+        return format_response(None)  # Will raise AttributeError
+    
+    return "Unknown mode"
+
+
+if __name__ == "__main__":
+    import sys
+    mode = sys.argv[1] if len(sys.argv) > 1 else "user"
+    print(run_demo(mode))

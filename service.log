@@ -84,3 +84,84 @@
 2026-02-06 14:47:29,099 - INFO - checkout-api - Connection acquired: 51/100
 2026-02-06 14:47:29,108 - INFO - checkout-api - Checkout completed: order=4, duration=9ms
 2026-02-06 14:47:29,111 - INFO - checkout-api - Connection released: 50/100
+2026-02-06 15:00:22,107 - INFO - checkout-api - Database initialized
+2026-02-06 15:00:57,372 - WARNING - checkout-api - CONFIGURATION CHANGED - DB pool reduced!
+2026-02-06 15:00:57,372 - WARNING - checkout-api - New config: max_connections=50, timeout=2s
+2026-02-06 15:00:59,921 - INFO - checkout-api - Processing checkout: product=1, qty=1
+2026-02-06 15:00:59,933 - WARNING - checkout-api - Connection pool at capacity: 50/50
+2026-02-06 15:01:01,933 - ERROR - checkout-api - DB connection timeout - pool exhausted after 2s
+2026-02-06 15:01:01,934 - CRITICAL - checkout-api - ConnectionTimeoutException: Unable to acquire connection from pool
+2026-02-06 15:01:01,934 - ERROR - checkout-api - Checkout FAILED after 2012ms: ConnectionTimeoutException: Connection pool exhausted after 2s. Active: 50/50
+2026-02-06 15:01:08,166 - INFO - checkout-api - Service reset to healthy configuration
+2026-02-06 15:01:12,750 - INFO - checkout-api - Processing checkout: product=1, qty=1
+2026-02-06 15:01:12,751 - INFO - checkout-api - Connection acquired: 51/100
+2026-02-06 15:01:12,762 - INFO - checkout-api - Checkout completed: order=5, duration=13ms
+2026-02-06 15:01:12,763 - INFO - checkout-api - Connection released: 50/100
+2026-02-06 15:03:13,587 - WARNING - checkout-api - CONFIGURATION CHANGED - DB pool reduced!
+2026-02-06 15:03:13,588 - WARNING - checkout-api - New config: max_connections=50, timeout=2s
+2026-02-06 15:03:16,133 - INFO - checkout-api - Processing checkout: product=1, qty=1
+2026-02-06 15:03:16,183 - WARNING - checkout-api - Connection pool at capacity: 50/50
+2026-02-06 15:03:18,186 - ERROR - checkout-api - DB connection timeout - pool exhausted after 2s
+2026-02-06 15:03:18,186 - CRITICAL - checkout-api - ConnectionTimeoutException: Unable to acquire connection from pool
+2026-02-06 15:03:18,187 - ERROR - checkout-api - Checkout FAILED after 2054ms: ConnectionTimeoutException: Connection pool exhausted after 2s. Active: 50/50
+2026-02-06 15:03:24,383 - INFO - checkout-api - Service reset to healthy configuration
+2026-02-06 15:03:29,013 - INFO - checkout-api - Processing checkout: product=1, qty=1
+2026-02-06 15:03:29,014 - INFO - checkout-api - Connection acquired: 51/100
+2026-02-06 15:03:29,027 - INFO - checkout-api - Checkout completed: order=6, duration=14ms
+2026-02-06 15:03:29,027 - INFO - checkout-api - Connection released: 50/100
+2026-02-06 15:05:46,790 - WARNING - checkout-api - CONFIGURATION CHANGED - DB pool reduced!
+2026-02-06 15:05:46,790 - WARNING - checkout-api - New config: max_connections=50, timeout=2s
+2026-02-06 15:10:27,962 - WARNING - checkout-api - CONFIGURATION CHANGED - DB pool reduced!
+2026-02-06 15:10:27,962 - WARNING - checkout-api - New config: max_connections=50, timeout=2s
+2026-02-06 15:10:30,508 - INFO - checkout-api - Processing checkout: product=1, qty=1
+2026-02-06 15:10:30,517 - WARNING - checkout-api - Connection pool at capacity: 50/50
+2026-02-06 15:10:32,519 - ERROR - checkout-api - DB connection timeout - pool exhausted after 2s
+2026-02-06 15:10:32,519 - CRITICAL - checkout-api - ConnectionTimeoutException: Unable to acquire connection from pool
+2026-02-06 15:10:32,519 - ERROR - checkout-api - Checkout FAILED after 2010ms: ConnectionTimeoutException: Connection pool exhausted after 2s. Active: 50/50
+2026-02-06 15:10:38,766 - INFO - checkout-api - Service reset to healthy configuration
+2026-02-06 15:10:43,415 - INFO - checkout-api - Processing checkout: product=1, qty=1
+2026-02-06 15:10:43,417 - INFO - checkout-api - Connection acquired: 51/100
+2026-02-06 15:10:43,465 - INFO - checkout-api - Checkout completed: order=7, duration=49ms
+2026-02-06 15:10:43,471 - INFO - checkout-api - Connection released: 50/100
+2026-02-06 15:14:49,032 - INFO - checkout-api - Database initialized
+2026-02-06 15:18:41,318 - INFO - checkout-api - Database initialized
+2026-02-06 15:19:40,379 - WARNING - checkout-api - CONFIGURATION CHANGED - DB pool reduced!
+2026-02-06 15:19:40,379 - WARNING - checkout-api - New config: max_connections=50, timeout=2s
+2026-02-06 15:19:42,923 - INFO - checkout-api - Processing checkout: product=1, qty=1
+2026-02-06 15:19:42,935 - WARNING - checkout-api - Connection pool at capacity: 50/50
+2026-02-06 15:19:44,936 - ERROR - checkout-api - DB connection timeout - pool exhausted after 2s
+2026-02-06 15:19:44,936 - CRITICAL - checkout-api - ConnectionTimeoutException: Unable to acquire connection from pool
+2026-02-06 15:19:44,936 - ERROR - checkout-api - Checkout FAILED after 2013ms: ConnectionTimeoutException: Connection pool exhausted after 2s. Active: 50/50
+2026-02-06 15:19:51,152 - INFO - checkout-api - Service reset to healthy configuration
+2026-02-06 15:19:55,805 - INFO - checkout-api - Processing checkout: product=1, qty=1
+2026-02-06 15:19:55,807 - INFO - checkout-api - Connection acquired: 51/100
+2026-02-06 15:19:55,824 - INFO - checkout-api - Checkout completed: order=8, duration=19ms
+2026-02-06 15:19:55,828 - INFO - checkout-api - Connection released: 50/100
+2026-02-06 15:28:41,699 - INFO - checkout-api - Database initialized
+2026-02-06 15:30:28,613 - INFO - checkout-api - Database initialized
+2026-02-06 15:30:58,926 - WARNING - checkout-api - CONFIGURATION CHANGED - Database Deadlock
+2026-02-06 15:30:58,926 - WARNING - checkout-api - Error type: deadlock
+2026-02-06 15:30:58,926 - WARNING - checkout-api - Config: lock_timeout_ms=100
+2026-02-06 15:30:58,926 - WARNING - checkout-api - Config: max_lock_retries=1
+2026-02-06 15:31:01,471 - INFO - checkout-api - Processing checkout: product=1, qty=1
+2026-02-06 15:31:01,471 - WARNING - checkout-api - Transaction waiting for lock: 5 locks held
+2026-02-06 15:31:01,473 - WARNING - checkout-api - Lock contention detected on table: orders
+2026-02-06 15:31:01,573 - ERROR - checkout-api - Lock timeout after 100ms - deadlock detected
+2026-02-06 15:31:01,573 - CRITICAL - checkout-api - DeadlockException: Transaction rolled back due to lock timeout
+2026-02-06 15:31:01,573 - ERROR - checkout-api - Circular dependency: TX-001 -> orders -> TX-002 -> products -> TX-001
+2026-02-06 15:31:07,663 - INFO - checkout-api - Service reset to healthy configuration
+2026-02-06 15:31:12,238 - INFO - checkout-api - Processing checkout: product=1, qty=1
+2026-02-06 15:31:12,248 - INFO - checkout-api - Checkout completed: order=9, duration=0ms
+2026-02-06 15:31:37,758 - WARNING - checkout-api - CONFIGURATION CHANGED - Database Deadlock
+2026-02-06 15:31:37,760 - WARNING - checkout-api - Error type: deadlock
+2026-02-06 15:31:37,760 - WARNING - checkout-api - Config: lock_timeout_ms=100
+2026-02-06 15:31:37,761 - WARNING - checkout-api - Config: max_lock_retries=1
+2026-02-06 15:31:40,287 - INFO - checkout-api - Processing checkout: product=1, qty=1
+2026-02-06 15:31:40,287 - WARNING - checkout-api - Transaction waiting for lock: 5 locks held
+2026-02-06 15:31:40,293 - WARNING - checkout-api - Lock contention detected on table: orders
+2026-02-06 15:31:40,394 - ERROR - checkout-api - Lock timeout after 100ms - deadlock detected
+2026-02-06 15:31:40,394 - CRITICAL - checkout-api - DeadlockException: Transaction rolled back due to lock timeout
+2026-02-06 15:31:40,396 - ERROR - checkout-api - Circular dependency: TX-001 -> orders -> TX-002 -> products -> TX-001
+2026-02-06 15:31:46,643 - INFO - checkout-api - Service reset to healthy configuration
+2026-02-06 15:31:51,239 - INFO - checkout-api - Processing checkout: product=1, qty=1
+2026-02-06 15:31:51,246 - INFO - checkout-api - Checkout completed: order=10, duration=0ms

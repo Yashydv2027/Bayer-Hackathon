@@ -117,24 +117,33 @@ def correlate_findings(agent_results):
         all_anomalies.extend(result.get("anomalies", []))
         all_timeline.extend(result.get("timeline_events", []))
     
-    # Determine root cause based on correlation
-    root_cause = "Unknown"
+    # Convert to lowercase for matching
+    anomaly_text = " ".join(str(a).lower() for a in all_anomalies)
+    finding_text = " ".join(str(f).lower() for f in all_findings)
+    combined_text = anomaly_text + " " + finding_text
+    
+    # Detect error type based on patterns
+    root_cause = "Unknown error"
     confidence = 0.5
     
-    # Check for config change + connection errors pattern
-    has_config_change = any("config" in str(f).lower() for f in all_findings)
-    has_connection_error = any("connection" in str(a).lower() or "pool" in str(a).lower() for a in all_anomalies)
-    has_latency_spike = any("latency" in str(f).lower() for f in all_findings)
-    
-    if has_config_change and has_connection_error:
-        root_cause = "Configuration change caused database connection pool exhaustion"
+    if "outofmemory" in combined_text or "heap" in combined_text or "memory" in combined_text:
+        root_cause = "Memory Leak: Heap exhausted due to disabled cache eviction"
+        confidence = 0.92
+    elif "deadlock" in combined_text or "lock timeout" in combined_text or "lock" in combined_text:
+        root_cause = "Database Deadlock: Circular dependency caused transaction rollback"
+        confidence = 0.90
+    elif "sockettimeout" in combined_text or "gateway" in combined_text or "payment" in combined_text:
+        root_cause = "Network Timeout: Downstream payment gateway unreachable"
+        confidence = 0.88
+    elif "circuitbreaker" in combined_text or "cascading" in combined_text or "auth" in combined_text:
+        root_cause = "Cascading Failure: Auth service outage triggered circuit breaker"
+        confidence = 0.93
+    elif "connectiontimeout" in combined_text or "pool exhausted" in combined_text or "connection" in combined_text:
+        root_cause = "Connection Pool Exhaustion: DB pool config reduced causing timeouts"
         confidence = 0.95
-    elif has_connection_error:
-        root_cause = "Database connection pool exhaustion"
+    elif "config" in combined_text:
+        root_cause = "Configuration change caused service degradation"
         confidence = 0.85
-    elif has_latency_spike:
-        root_cause = "Service performance degradation"
-        confidence = 0.70
     
     # Sort timeline
     all_timeline.sort(key=lambda x: x.get("timestamp", ""))
@@ -384,7 +393,7 @@ if st.session_state.fixing_in_progress and not st.session_state.fix_complete:
     with open(report_file, 'w', encoding='utf-8') as f:
         f.write(report)
     
-    st.balloons()
+    
     
     with st.expander("📄 View Full Report", expanded=True):
         st.markdown(report)
