@@ -1,7 +1,15 @@
 # Commander Agent - Dependencies
 
+# UI
+streamlit>=1.30.0
+
+# Backend Service
+fastapi>=0.100.0
+uvicorn>=0.23.0
+requests>=2.28.0
+
 # LLM Clients (install one or both)
-openai>=1.0.0
+openai>=0.28.0
 google-generativeai>=0.3.0
 
 # Optional: For async support
@@ -9,3 +17,5 @@ aiohttp>=3.8.0
 
 # Optional: For better environment handling
 python-dotenv>=1.0.0
+
+

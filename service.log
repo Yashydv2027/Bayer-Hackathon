@@ -1,0 +1,86 @@
+2026-02-06 14:07:02,409 - INFO - checkout-api - Database initialized
+2026-02-06 14:07:23,415 - INFO - checkout-api - Service reset to healthy configuration
+2026-02-06 14:07:38,942 - WARNING - checkout-api - CONFIGURATION CHANGED - DB pool reduced!
+2026-02-06 14:07:38,942 - WARNING - checkout-api - New config: max_connections=50, timeout=2s
+2026-02-06 14:08:10,043 - WARNING - checkout-api - CONFIGURATION CHANGED - DB pool reduced!
+2026-02-06 14:08:10,043 - WARNING - checkout-api - New config: max_connections=50, timeout=2s
+2026-02-06 14:09:02,308 - INFO - checkout-api - Service reset to healthy configuration
+2026-02-06 14:11:11,202 - INFO - checkout-api - Database initialized
+2026-02-06 14:11:37,090 - INFO - checkout-api - Database initialized
+2026-02-06 14:12:05,326 - WARNING - checkout-api - CONFIGURATION CHANGED - DB pool reduced!
+2026-02-06 14:12:05,327 - WARNING - checkout-api - New config: max_connections=50, timeout=2s
+2026-02-06 14:12:07,882 - INFO - checkout-api - Processing checkout: product=1, qty=1
+2026-02-06 14:12:07,894 - WARNING - checkout-api - Connection pool at capacity: 50/50
+2026-02-06 14:12:09,895 - ERROR - checkout-api - DB connection timeout - pool exhausted after 2s
+2026-02-06 14:12:09,895 - CRITICAL - checkout-api - ConnectionTimeoutException: Unable to acquire connection from pool
+2026-02-06 14:12:09,895 - ERROR - checkout-api - Checkout FAILED after 2013ms: ConnectionTimeoutException: Connection pool exhausted after 2s. Active: 50/50
+2026-02-06 14:13:30,210 - INFO - checkout-api - Service reset to healthy configuration
+2026-02-06 14:14:26,557 - WARNING - checkout-api - CONFIGURATION CHANGED - DB pool reduced!
+2026-02-06 14:14:26,557 - WARNING - checkout-api - New config: max_connections=50, timeout=2s
+2026-02-06 14:14:29,105 - INFO - checkout-api - Processing checkout: product=1, qty=1
+2026-02-06 14:14:29,113 - WARNING - checkout-api - Connection pool at capacity: 50/50
+2026-02-06 14:14:31,115 - ERROR - checkout-api - DB connection timeout - pool exhausted after 2s
+2026-02-06 14:14:31,115 - CRITICAL - checkout-api - ConnectionTimeoutException: Unable to acquire connection from pool
+2026-02-06 14:14:31,115 - ERROR - checkout-api - Checkout FAILED after 2009ms: ConnectionTimeoutException: Connection pool exhausted after 2s. Active: 50/50
+2026-02-06 14:27:12,255 - INFO - checkout-api - Database initialized
+2026-02-06 14:27:45,142 - WARNING - checkout-api - CONFIGURATION CHANGED - DB pool reduced!
+2026-02-06 14:27:45,142 - WARNING - checkout-api - New config: max_connections=50, timeout=2s
+2026-02-06 14:27:47,695 - INFO - checkout-api - Processing checkout: product=1, qty=1
+2026-02-06 14:27:47,707 - WARNING - checkout-api - Connection pool at capacity: 50/50
+2026-02-06 14:27:49,708 - ERROR - checkout-api - DB connection timeout - pool exhausted after 2s
+2026-02-06 14:27:49,708 - CRITICAL - checkout-api - ConnectionTimeoutException: Unable to acquire connection from pool
+2026-02-06 14:27:49,709 - ERROR - checkout-api - Checkout FAILED after 2014ms: ConnectionTimeoutException: Connection pool exhausted after 2s. Active: 50/50
+2026-02-06 14:27:56,860 - INFO - checkout-api - Service reset to healthy configuration
+2026-02-06 14:28:00,933 - INFO - checkout-api - Processing checkout: product=1, qty=1
+2026-02-06 14:28:00,933 - INFO - checkout-api - Connection acquired: 51/100
+2026-02-06 14:28:00,940 - INFO - checkout-api - Checkout completed: order=1, duration=7ms
+2026-02-06 14:28:00,941 - INFO - checkout-api - Connection released: 50/100
+2026-02-06 14:29:43,171 - INFO - checkout-api - Database initialized
+2026-02-06 14:30:10,083 - WARNING - checkout-api - CONFIGURATION CHANGED - DB pool reduced!
+2026-02-06 14:30:10,086 - WARNING - checkout-api - New config: max_connections=50, timeout=2s
+2026-02-06 14:30:12,635 - INFO - checkout-api - Processing checkout: product=1, qty=1
+2026-02-06 14:30:12,656 - WARNING - checkout-api - Connection pool at capacity: 50/50
+2026-02-06 14:30:14,657 - ERROR - checkout-api - DB connection timeout - pool exhausted after 2s
+2026-02-06 14:30:14,657 - CRITICAL - checkout-api - ConnectionTimeoutException: Unable to acquire connection from pool
+2026-02-06 14:30:14,657 - ERROR - checkout-api - Checkout FAILED after 2022ms: ConnectionTimeoutException: Connection pool exhausted after 2s. Active: 50/50
+2026-02-06 14:30:21,781 - INFO - checkout-api - Service reset to healthy configuration
+2026-02-06 14:30:25,891 - INFO - checkout-api - Processing checkout: product=1, qty=1
+2026-02-06 14:30:25,892 - INFO - checkout-api - Connection acquired: 51/100
+2026-02-06 14:30:25,897 - INFO - checkout-api - Checkout completed: order=2, duration=6ms
+2026-02-06 14:30:25,898 - INFO - checkout-api - Connection released: 50/100
+2026-02-06 14:39:43,084 - INFO - checkout-api - Database initialized
+2026-02-06 14:41:38,973 - INFO - checkout-api - Database initialized
+2026-02-06 14:41:49,679 - INFO - checkout-api - Database initialized
+2026-02-06 14:42:16,358 - WARNING - checkout-api - CONFIGURATION CHANGED - DB pool reduced!
+2026-02-06 14:42:16,358 - WARNING - checkout-api - New config: max_connections=50, timeout=2s
+2026-02-06 14:42:18,914 - INFO - checkout-api - Processing checkout: product=1, qty=1
+2026-02-06 14:42:18,929 - WARNING - checkout-api - Connection pool at capacity: 50/50
+2026-02-06 14:42:20,930 - ERROR - checkout-api - DB connection timeout - pool exhausted after 2s
+2026-02-06 14:42:20,930 - CRITICAL - checkout-api - ConnectionTimeoutException: Unable to acquire connection from pool
+2026-02-06 14:42:20,930 - ERROR - checkout-api - Checkout FAILED after 2017ms: ConnectionTimeoutException: Connection pool exhausted after 2s. Active: 50/50
+2026-02-06 14:43:56,983 - INFO - checkout-api - Database initialized
+2026-02-06 14:44:20,541 - WARNING - checkout-api - CONFIGURATION CHANGED - DB pool reduced!
+2026-02-06 14:44:20,542 - WARNING - checkout-api - New config: max_connections=50, timeout=2s
+2026-02-06 14:44:23,103 - INFO - checkout-api - Processing checkout: product=1, qty=1
+2026-02-06 14:44:23,117 - WARNING - checkout-api - Connection pool at capacity: 50/50
+2026-02-06 14:44:25,118 - ERROR - checkout-api - DB connection timeout - pool exhausted after 2s
+2026-02-06 14:44:25,118 - CRITICAL - checkout-api - ConnectionTimeoutException: Unable to acquire connection from pool
+2026-02-06 14:44:25,119 - ERROR - checkout-api - Checkout FAILED after 2017ms: ConnectionTimeoutException: Connection pool exhausted after 2s. Active: 50/50
+2026-02-06 14:44:31,512 - INFO - checkout-api - Service reset to healthy configuration
+2026-02-06 14:44:36,123 - INFO - checkout-api - Processing checkout: product=1, qty=1
+2026-02-06 14:44:36,124 - INFO - checkout-api - Connection acquired: 51/100
+2026-02-06 14:44:36,131 - INFO - checkout-api - Checkout completed: order=3, duration=8ms
+2026-02-06 14:44:36,132 - INFO - checkout-api - Connection released: 50/100
+2026-02-06 14:46:49,843 - INFO - checkout-api - Database initialized
+2026-02-06 14:47:13,587 - WARNING - checkout-api - CONFIGURATION CHANGED - DB pool reduced!
+2026-02-06 14:47:13,588 - WARNING - checkout-api - New config: max_connections=50, timeout=2s
+2026-02-06 14:47:16,150 - INFO - checkout-api - Processing checkout: product=1, qty=1
+2026-02-06 14:47:16,160 - WARNING - checkout-api - Connection pool at capacity: 50/50
+2026-02-06 14:47:18,161 - ERROR - checkout-api - DB connection timeout - pool exhausted after 2s
+2026-02-06 14:47:18,163 - CRITICAL - checkout-api - ConnectionTimeoutException: Unable to acquire connection from pool
+2026-02-06 14:47:18,163 - ERROR - checkout-api - Checkout FAILED after 2013ms: ConnectionTimeoutException: Connection pool exhausted after 2s. Active: 50/50
+2026-02-06 14:47:24,482 - INFO - checkout-api - Service reset to healthy configuration
+2026-02-06 14:47:29,099 - INFO - checkout-api - Processing checkout: product=1, qty=1
+2026-02-06 14:47:29,099 - INFO - checkout-api - Connection acquired: 51/100
+2026-02-06 14:47:29,108 - INFO - checkout-api - Checkout completed: order=4, duration=9ms
+2026-02-06 14:47:29,111 - INFO - checkout-api - Connection released: 50/100

@@ -1,182 +1,152 @@
 """
-Deploy Intelligence Agent - The Historian.
+Deploy Agent - Checks REAL configuration changes.
 
-Maps real-time errors against the timeline of CI/CD deployments and service configuration changes.
-
-THIS IS A MOCK IMPLEMENTATION for demonstration.
-Replace with actual deployment tracking logic for production.
+This agent reads the actual service_config.json and compares:
+- Current vs default configuration
+- Deployment timestamps
+- Config change history
 """
+from typing import Dict, Any
+from datetime import datetime
+from pathlib import Path
 import json
-from typing import Dict, Any, List
 
 from .base_agent import BaseAgent
-from ..models.investigation import InvestigationState, AgentResult
 
 
 class DeployAgent(BaseAgent):
     """
-    Deploy Intelligence Agent - The Historian.
-    
-    Capabilities:
-    - Track CI/CD deployment history
-    - Monitor configuration changes
-    - Map errors against deployment timeline
-    - Identify recent changes as potential causes
+    Historian - Tracks real deployment and config changes.
     """
     
-    def __init__(self, mock_data_path: str = None):
-        """
-        Initialize Deploy Intelligence Agent.
-        
-        Args:
-            mock_data_path: Path to mock deployment data JSON (optional)
-        """
-        super().__init__("deploy")
-        self.mock_data_path = mock_data_path
-        self.mock_data = None
-    
-    def load_mock_data(self, data: Dict[str, Any] = None):
-        """Load mock data for demonstration."""
-        if data:
-            self.mock_data = data
-        elif self.mock_data_path:
-            with open(self.mock_data_path, 'r') as f:
-                self.mock_data = json.load(f)
-    
-    async def investigate(self, state: InvestigationState) -> AgentResult:
-        """
-        Investigate deployments for the given alert context.
-        
-        For production: Connect to actual CI/CD systems (Jenkins, GitLab, ArgoCD, etc.)
-        """
-        context = self.get_context_for_query(state)
-        
-        if self.mock_data:
-            return self._analyze_mock_data(context)
-        else:
-            return self._generate_demo_findings(context)
-    
-    def _generate_demo_findings(self, context: Dict[str, Any]) -> AgentResult:
-        """Generate demo findings matching the hackathon scenario."""
-        service = context.get("service", "unknown")
-        timestamp = context.get("timestamp", "10:15")
-        
-        # Demo: Config deployment 15 minutes before incident (hackathon scenario)
-        findings = [
-            {
-                "type": "config_change",
-                "description": "Database connection pool configuration updated - max_connections reduced from 100 to 50",
-                "timestamp": "10:00",
-                "severity": "high",
-                "raw_data": {
-                    "change_type": "configuration",
-                    "component": "database",
-                    "changed_by": "config-automation",
-                    "commit_id": "a1b2c3d4",
-                    "changes": {
-                        "db.pool.max_connections": {"old": 100, "new": 50},
-                        "db.pool.timeout_ms": {"old": 10000, "new": 5000}
-                    }
-                }
-            },
-            {
-                "type": "deployment",
-                "description": f"Deployment of {service} v2.3.1 with config changes",
-                "timestamp": "09:58",
-                "severity": "medium",
-                "raw_data": {
-                    "version": "2.3.1",
-                    "previous_version": "2.3.0",
-                    "deploy_type": "config_update",
-                    "deployed_by": "ci-pipeline",
-                    "rollback_available": True
-                }
-            }
-        ]
-        
-        anomalies = [
-            "Configuration change detected 15 minutes before incident",
-            "DB pool max_connections reduced by 50% (100 → 50)",
-            "Connection timeout reduced from 10s to 5s"
-        ]
-        
-        timeline_events = [
-            {
-                "timestamp": "09:58",
-                "description": f"Deployment started: {service} v2.3.1",
-                "type": "deployment"
-            },
-            {
-                "timestamp": "10:00",
-                "description": "Configuration applied: DB pool settings changed",
-                "type": "config_change"
-            },
-            {
-                "timestamp": "10:00",
-                "description": "Deployment completed successfully",
-                "type": "deployment"
-            }
-        ]
-        
-        return AgentResult(
-            agent_name=self.name,
-            success=True,
-            findings=findings,
-            anomalies=anomalies,
-            timeline_events=timeline_events,
-            confidence=0.9,
-            raw_data={
-                "deployments_in_window": 1,
-                "config_changes_in_window": 1,
-                "time_window": "last 30 minutes",
-                "rollback_command": f"kubectl rollout undo deployment/{service}"
-            }
+    def __init__(self, config_file: str = None):
+        super().__init__(
+            name="deploy",
+            description="Deployment intelligence - tracks config changes"
         )
+        self.config_file = Path(config_file) if config_file else Path(__file__).parent.parent.parent / "service_config.json"
+        self.default_config = {
+            "db_pool_max_connections": 100,
+            "db_timeout_seconds": 10,
+            "is_healthy": True,
+            "version": "2.3.0"
+        }
     
-    def _analyze_mock_data(self, context: Dict[str, Any]) -> AgentResult:
-        """Analyze provided mock deployment data."""
-        deployments = self.mock_data.get("deployments", [])
-        config_changes = self.mock_data.get("config_changes", [])
-        
+    async def investigate(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Check for configuration changes.
+        """
         findings = []
         anomalies = []
         timeline_events = []
         
-        # Analyze deployments
-        for deploy in deployments:
-            findings.append({
-                "type": "deployment",
-                "description": deploy.get("description", "Deployment detected"),
-                "timestamp": deploy.get("timestamp", ""),
-                "severity": "medium",
-                "raw_data": deploy
-            })
-            timeline_events.append({
-                "timestamp": deploy.get("timestamp", ""),
-                "description": deploy.get("description", ""),
-                "type": "deployment"
-            })
+        if not self.config_file.exists():
+            return self._create_result(
+                success=False,
+                findings=[{"type": "info", "description": "No config file found", "severity": "low"}],
+                anomalies=[],
+                timeline_events=[],
+                confidence=0.5
+            )
         
-        # Analyze config changes
-        for change in config_changes:
+        # Read current config
+        try:
+            with open(self.config_file) as f:
+                current_config = json.load(f)
+        except Exception as e:
+            return self._create_result(
+                success=False,
+                findings=[{"type": "error", "description": f"Failed to read config: {e}", "severity": "medium"}],
+                anomalies=["Config file unreadable"],
+                timeline_events=[],
+                confidence=0.0
+            )
+        
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        
+        # Compare with defaults
+        changes_found = []
+        
+        # Check DB pool size
+        current_pool = current_config.get("db_pool_max_connections", 100)
+        default_pool = self.default_config["db_pool_max_connections"]
+        if current_pool != default_pool:
+            change_desc = f"DB pool max_connections changed: {default_pool} → {current_pool}"
+            changes_found.append(change_desc)
             findings.append({
                 "type": "config_change",
-                "description": change.get("description", "Config change detected"),
-                "timestamp": change.get("timestamp", ""),
-                "severity": "high",
-                "raw_data": change
+                "description": change_desc,
+                "timestamp": timestamp,
+                "severity": "high" if current_pool < default_pool else "medium"
             })
-            anomalies.append(f"Config change: {change.get('description', '')}")
+            anomalies.append(f"DB pool reduced by {((default_pool - current_pool) / default_pool * 100):.0f}%")
         
-        return AgentResult(
-            agent_name=self.name,
+        # Check timeout
+        current_timeout = current_config.get("db_timeout_seconds", 10)
+        default_timeout = self.default_config["db_timeout_seconds"]
+        if current_timeout != default_timeout:
+            change_desc = f"DB timeout changed: {default_timeout}s → {current_timeout}s"
+            changes_found.append(change_desc)
+            findings.append({
+                "type": "config_change",
+                "description": change_desc,
+                "timestamp": timestamp,
+                "severity": "medium"
+            })
+            anomalies.append(f"DB timeout reduced from {default_timeout}s to {current_timeout}s")
+        
+        # Check version
+        current_version = current_config.get("version", "2.3.0")
+        default_version = self.default_config["version"]
+        if current_version != default_version:
+            findings.append({
+                "type": "deployment",
+                "description": f"Version changed: {default_version} → {current_version}",
+                "timestamp": timestamp,
+                "severity": "medium"
+            })
+        
+        # Check deployment timestamp
+        last_deployment = current_config.get("last_deployment")
+        if last_deployment:
+            findings.append({
+                "type": "deployment",
+                "description": f"Last deployment at {last_deployment}",
+                "timestamp": last_deployment,
+                "severity": "medium"
+            })
+            timeline_events.append({
+                "timestamp": last_deployment,
+                "description": "Configuration deployment",
+                "type": "deploy"
+            })
+            anomalies.append(f"Recent deployment detected at {last_deployment}")
+        
+        # Check health flag
+        if not current_config.get("is_healthy", True):
+            findings.append({
+                "type": "config_flag",
+                "description": "Service marked as unhealthy in config",
+                "timestamp": timestamp,
+                "severity": "critical"
+            })
+            anomalies.append("Config has is_healthy=False")
+        
+        # Add timeline events for changes
+        if changes_found:
+            timeline_events.append({
+                "timestamp": timestamp,
+                "description": f"Config changes detected: {len(changes_found)} modifications",
+                "type": "deploy"
+            })
+        
+        # Calculate confidence
+        confidence = min(0.95, 0.3 + (len(changes_found) * 0.2) + (0.2 if last_deployment else 0))
+        
+        return self._create_result(
             success=True,
             findings=findings,
             anomalies=anomalies,
             timeline_events=timeline_events,
-            confidence=0.85 if findings else 0.3,
-            raw_data={
-                "total_deployments": len(deployments),
-                "total_config_changes": len(config_changes)
-            }
+            confidence=confidence
         )

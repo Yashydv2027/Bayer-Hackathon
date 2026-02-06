@@ -1,0 +1,22 @@
+{
+  "logs": [
+    {
+      "timestamp": "14:01",
+      "level": "ERROR",
+      "service": "checkout-api",
+      "message": "DB connection timeout - pool exhausted after 5000ms"
+    },
+    {
+      "timestamp": "14:01",
+      "level": "CRITICAL",
+      "service": "checkout-api",
+      "message": "ConnectionTimeoutException: Unable to acquire connection from pool"
+    },
+    {
+      "timestamp": "14:01",
+      "level": "ERROR",
+      "service": "checkout-api",
+      "message": "Transaction failed: checkout service unavailable"
+    }
+  ]
+}

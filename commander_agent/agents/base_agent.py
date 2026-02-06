@@ -45,9 +45,23 @@ class BaseAgent(ABC):
     }
     """
     
-    def __init__(self, name: str):
-        """Initialize agent with name."""
+    def __init__(self, name: str, description: str = ""):
+        """Initialize agent with name and description."""
         self.name = name
+        self.description = description
+    
+    def _create_result(self, success: bool, findings: list, anomalies: list, 
+                       timeline_events: list, confidence: float, error: str = None) -> Dict[str, Any]:
+        """Helper to create standardized result."""
+        return {
+            "agent_name": self.name,
+            "success": success,
+            "findings": findings,
+            "anomalies": anomalies,
+            "timeline_events": timeline_events,
+            "confidence": confidence,
+            "error": error
+        }
     
     @abstractmethod
     async def investigate(self, state: InvestigationState) -> AgentResult:
