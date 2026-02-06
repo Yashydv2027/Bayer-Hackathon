@@ -1,0 +1,11 @@
+# Commander Agent - Dependencies
+
+# LLM Clients (install one or both)
+openai>=1.0.0
+google-generativeai>=0.3.0
+
+# Optional: For async support
+aiohttp>=3.8.0
+
+# Optional: For better environment handling
+python-dotenv>=1.0.0
